@@ -181,7 +181,21 @@ Pada tahap ini, dilakukan serangkaian proses untuk mempersiapkan dataset sehingg
 
 ---
 
-### **1. Mengatasi Missing Value**
+### **1. Penggabungan Dataset**
+
+Dataset yang digunakan terdiri dari dua file utama:  
+- **tmdb_5000_movies.csv**: Berisi informasi tentang film, seperti genre, sinopsis, dan lainnya yang disimpan pada variabe; `data_tmdb_movies`.  
+- **tmdb_5000_credits.csv**: Berisi informasi tentang aktor, kru, dan peran terkait dalam setiap film yang disimpan pada variabe; `data_tmdb_credits`.
+
+Penggabungan dilakukan menggunakan metode `merge` dengan kunci penggabungan:  
+- **Kolom `id`** dari dataset **data_tmdb_movies**.  
+- **Kolom `movie_id`** dari dataset **data_tmdb_credits**.  
+
+Hasil penggabungan menghasilkan dataset yang berisi semua informasi film dalam satu baris per film, termasuk informasi genre, sinopsis, pemeran, dan kru. Dataset hasil penggabungan ini siap digunakan untuk proses lebih lanjut.
+
+---
+
+### **2. Mengatasi Missing Value**
 
 Dataset awal memiliki beberapa kolom dengan nilai yang hilang (missing value). Langkah-langkah berikut diterapkan untuk menangani nilai yang hilang:
 
@@ -194,7 +208,7 @@ Tujuan dari langkah ini adalah untuk memastikan tidak ada nilai yang hilang sehi
 
 ---
 
-### **2. Mengatasi Duplikasi Kolom**
+### **3. Mengatasi Duplikasi Kolom**
 
 Dataset memiliki kolom duplikat seperti **title_x** dan **title_y**, serta **id** dan **movie_id**. Proses berikut dilakukan:
 
@@ -206,7 +220,7 @@ Langkah ini dilakukan untuk menyederhanakan dataset dan mengurangi kompleksitas 
 
 ---
 
-### **3. Memilih Kolom yang Relevan**
+### **4. Memilih Kolom yang Relevan**
 
 Untuk analisis berbasis konten, dipilih kolom-kolom yang memiliki informasi esensial terkait film. Kolom yang dipertahankan adalah:
 
@@ -223,14 +237,52 @@ Hasil setelah pemilihan kolom menunjukkan bahwa dataset memiliki 4803 entri deng
 
 ---
 
-### **4. Analisis Berdasarkan Keyword**
+### **5. Ekstraksi Fitur dengan TF-IDF**
 
-Untuk memahami kemampuan dataset dalam mendukung pencarian berbasis kata kunci, dilakukan filter pada film yang mengandung keyword tertentu dalam kolom **title**, **overview**, atau **tagline**. Berikut adalah hasilnya:
+Tahapan ini bertujuan untuk memproses teks menjadi representasi numerik yang dapat digunakan untuk analisis kemiripan antar film. Berikut langkah-langkah yang dilakukan:
 
-#### **a. Keyword: "The Dark Knight"**
+---
 
+#### **a. TF-IDF untuk Overview dan Tagline**
+
+- **Kolom yang Diproses**: `overview` dan `tagline`.  
+- **Teknik yang Digunakan**: 
+  - **`TfidfVectorizer`** digunakan untuk menghitung bobot TF-IDF pada teks. 
+  - **`stop_words='english'`** diterapkan untuk menghapus kata-kata umum dalam bahasa Inggris, sehingga hanya kata-kata bermakna yang dipertimbangkan.
+- **Hasil Akhir**: Matriks numerik berbasis TF-IDF yang merepresentasikan teks deskripsi dan tagline setiap film. Matriks ini digunakan untuk menghitung kesamaan antar film berdasarkan deskripsi mereka.
+
+---
+
+#### **b. TF-IDF untuk Cast**
+
+- **Kolom yang Diproses**: `cast`.  
+- **Proses Pengolahan**: 
+  - Kolom `cast` berisi data dalam format JSON yang diuraikan menggunakan **`json.loads()`**.
+  - Nama-nama aktor dalam JSON digabung menjadi satu string menggunakan **`' '.join()`**.
+- **Teknik yang Digunakan**: 
+  - **`TfidfVectorizer`** diterapkan pada string nama aktor untuk menghasilkan matriks TF-IDF.
+- **Hasil Akhir**: Representasi numerik yang memungkinkan analisis kemiripan antar film berdasarkan aktor yang terlibat.
+
+---
+
+#### **c. TF-IDF untuk Genres**
+
+- **Kolom yang Diproses**: `genres`.  
+- **Proses Pengolahan**: 
+  - Kolom `genres` berisi data dalam format JSON yang diubah menjadi list menggunakan **`json.loads()`**.
+  - List genre digabung menjadi string tunggal untuk setiap film.
+- **Teknik yang Digunakan**: 
+  - **`TfidfVectorizer`** digunakan untuk menghitung bobot TF-IDF genre setiap film.
+- **Hasil Akhir**: Matriks numerik yang menggambarkan kesamaan antar film berdasarkan genre.
+
+---
+
+#### **d. Analisis Berdasarkan Keyword**
+
+TF-IDF memungkinkan pencarian berbasis kata kunci yang lebih efektif. Berikut adalah hasil analisis pada dataset:
+
+##### **Keyword: "The Dark Knight"**
 Jumlah film yang mengandung kata "The Dark Knight" adalah **6**, yaitu:
-
 - The Dark Knight Rises
 - The Dark Knight
 - Batman Forever
@@ -238,10 +290,8 @@ Jumlah film yang mengandung kata "The Dark Knight" adalah **6**, yaitu:
 - Batman
 - Batman: The Dark Knight Returns, Part 2
 
-#### **b. Keyword: "Batman"**
-
+##### **Keyword: "Batman"**
 Jumlah film yang mengandung kata "Batman" adalah **10**, termasuk:
-
 - Batman v Superman: Dawn of Justice
 - Batman Begins
 - Batman & Robin
@@ -250,13 +300,11 @@ Jumlah film yang mengandung kata "Batman" adalah **10**, termasuk:
 
 ---
 
-### **5. Kasus Khusus: "Seventh Son"**
-
-Pada pencarian dengan keyword "The Dark Knight", ditemukan bahwa film *Seventh Son* muncul dalam hasil filter meskipun judulnya tidak mengandung kata tersebut. Setelah dianalisis, diketahui bahwa kata "The Dark Knight" terdapat pada kolom **tagline** dengan isi:
-
-> *"When darkness falls, the son will rise. When the son falls, the dark knight will rise."*
-
-Hal ini menunjukkan bahwa sistem rekomendasi berbasis konten harus memperhatikan sumber informasi (seperti tagline) untuk menghindari hasil rekomendasi yang tidak relevan.
+#### **e. Kasus Khusus: "Seventh Son"**
+Pada pencarian dengan keyword *"The Dark Knight"*, film *Seventh Son* muncul dalam hasil filter meskipun judulnya tidak mengandung kata tersebut.  
+- Hal ini terjadi karena dalam kolom `tagline`, terdapat kalimat:
+  > *"When darkness falls, the son will rise. When the son falls, the dark knight will rise."*
+- Hasil ini menunjukkan bahwa sistem rekomendasi berbasis konten sangat bergantung pada sumber informasi (seperti tagline), sehingga perlu evaluasi lebih lanjut untuk menghindari hasil rekomendasi yang kurang relevan.
 
 ---
 
@@ -269,24 +317,10 @@ Hal ini menunjukkan bahwa sistem rekomendasi berbasis konten harus memperhatikan
 
 ## **Modeling and Result**
 
-Pada tahap ini, dilakukan pembangunan sistem rekomendasi berbasis **Content-Based Filtering** untuk menyelesaikan permasalahan rekomendasi film. Berikut adalah langkah-langkah dan metode yang digunakan:
-
-### **TF-IDF**
-
-**Representasi Data Teks**
-
-Representasi data teks dilakukan menggunakan metode **TF-IDF (Term Frequency-Inverse Document Frequency)**. Teknik ini bertujuan untuk:
-- Mengonversi data teks menjadi representasi numerik yang dapat dihitung oleh model.
-- Memberikan bobot yang lebih tinggi untuk kata-kata yang memiliki frekuensi tinggi dalam dokumen tertentu, namun jarang muncul di dokumen lain.
+Pada tahap ini, dilakukan pembangunan sistem rekomendasi berbasis **Content-Based Filtering** dengan menggunakan metode **Cosine Similarity**. Sistem ini dirancang untuk merekomendasikan film berdasarkan kemiripan fitur dengan film yang dipilih oleh pengguna.
 
 
-![Formula TF-IDF](https://github.com/kangdconqueror/sistem-rekomendasi/blob/main/tf-idf.png?raw=true)
-
-- **TF**: Frekuensi kemunculan kata dalam dokumen tertentu.
-- **IDF**: Logaritma terbalik dari frekuensi dokumen yang mengandung kata tersebut.
-
-
-### **Formula Cosine Similarity**
+### **Cosine Similarity**
 
 **Perhitungan Kesamaan**
 
@@ -294,21 +328,40 @@ Perhitungan kesamaan antar film dilakukan menggunakan **Cosine Similarity**. Met
 
 ![Formula TF-IDF](https://github.com/kangdconqueror/sistem-rekomendasi/blob/main/consine.png?raw=true)
 
-Cosine Similarity mengukur kesamaan antara dua vektor berdasarkan sudut kosinus antara mereka dalam ruang vektor. 
+**Cosine Similarity**  digunakan untuk mengukur kesamaan antara dua vektor, dalam hal ini antara dua film berdasarkan fitur yang dimilikinya. Berikut adalah penjelasan untuk masing-masing bagian:
+
+1. **Menghitung Cosine Similarity untuk Overview:**
+
+   Fitur `overview` setiap film diwakili oleh vektor TF-IDF yang menghitung pentingnya setiap kata dalam konteks `overview` tersebut. Cosine similarity kemudian dihitung antara setiap pasangan film berdasarkan vektor `overview` mereka. Hasil dari perhitungan ini menunjukkan seberapa mirip setiap film dengan film lainnya dalam hal konten deskripsi (overview).
+
+2. **Menghitung Cosine Similarity untuk Tagline:**
+
+   Fitur `tagline` masing-masing film, yang biasanya merupakan ringkasan singkat atau tagline yang menggambarkan film, juga diubah menjadi representasi vektor TF-IDF. Dengan cara yang sama, cosine similarity dihitung untuk mengukur kesamaan antara film-film berdasarkan tagline mereka. Ini berguna untuk membandingkan film-film yang memiliki tema atau pesan yang serupa berdasarkan tagline yang mereka tampilkan.
+
+3. **Menghitung Cosine Similarity untuk Cast:**
+
+   Fitur `cast` terdiri dari daftar aktor atau pemeran utama dalam sebuah film. Nama-nama aktor ini diubah menjadi sebuah vektor teks menggunakan TF-IDF, yang menggambarkan seberapa penting setiap aktor dalam konteks film tersebut. Cosine similarity kemudian digunakan untuk menghitung seberapa mirip satu film dengan film lainnya berdasarkan kesamaan cast (aktor/pemeran) yang terlibat dalam film tersebut.
+
+4. **Menghitung Cosine Similarity untuk Genres:**
+
+   Fitur `genres` menunjukkan jenis atau kategori film, seperti aksi, petualangan, drama, dll. Setiap genre ini diubah menjadi vektor teks menggunakan TF-IDF. Cosine similarity dihitung untuk mengukur kesamaan antara film-film berdasarkan jenis atau kategori yang sama. Hal ini memungkinkan kita untuk mengetahui film mana yang memiliki genre serupa, dan bisa digunakan dalam sistem rekomendasi berbasis genre.
 
 
 ### **Proses Rekomendasi**
 
 Langkah-langkah utama dalam sistem rekomendasi:
 
-1. **Ekstraksi Fitur**: Data teks (seperti deskripsi film atau genre) diubah menjadi vektor TF-IDF.
-2. **Penghitungan Kemiripan**: Menggunakan Cosine Similarity untuk membandingkan film yang dipilih pengguna dengan semua film lain dalam dataset.
-3. **Penyortiran Hasil**: Mengurutkan daftar film berdasarkan skor kesamaan tertinggi.
-4. **Pemfilteran**: Menghapus film yang telah ditonton pengguna dari daftar rekomendasi.
+1. **Input Pengguna**: Film yang digunakan sebagai referensi adalah *The Dark Knight*.
+2. **Penghitungan Kemiripan**: Kemiripan antar film dihitung menggunakan *Cosine Similarity*.
+3. **Penyortiran Hasil**: Hasil dihitung dan diurutkan berdasarkan skor kemiripan tertinggi.
+4. **Top-N Recommendation**: Sistem menampilkan daftar film rekomendasi terbaik berdasarkan skor kemiripan.
+
 
 ---
 
-### Hasil Film Recommendations Based on Cosine Similarity
+### **Hasil Rekomendasi**
+
+Berikut adalah hasil rekomendasi berdasarkan film input *The Dark Knight*:
 
 | **Judul Film**                          | **Skor Similarity** | **Pemeran**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | **Genres**                      |
 |-----------------------------------------|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------|
@@ -323,6 +376,10 @@ Langkah-langkah utama dalam sistem rekomendasi:
 | Hitman                                 | 0.119232             | Timothy Olyphant, Dougray Scott, Olga Kurylenko, Robert Knepper, Ulrich Thomsen, Henry Ian Cusick, Michael Offei, Christian Erickson, Eriq Ebouaney, Joe Sheridan, James Faulkner.                                                                                                                                                                                                                                                                                                                                                                                                                                          | Action, Crime, Drama, Thriller |
 | Dead Man Down                          | 0.118277             | Colin Farrell, Noomi Rapace, Terrence Howard, Dominic Cooper, Isabelle Huppert, Luis Da Silva Jr., Stuart Bennett, Franky G, Declan Mulvey, John Cenatiempo, Roy James Wilson, Myles Humphus, Stephen Hill, Aaron Vexler, James Biberi, F. Murray Abraham, Andrew Stewart-Jones, Krystal Tini, William Zielinski, Jessica Jean Wilson, Christopher Cline, Kimberly S. Fairbanks, Michael McKiddy, Beata Dalton, Accalia Quintana, Jay Santiago, Maria Laboy, Saul Stein, Roy Milton Davis, Armand Assante, Jennifer Mudge, Ante Novakovic, Kresh Novakovic, Raw Leiba, Jennifer Butler, and many more.                                    | Thriller, Action, Crime, Drama |
 
+
+### **Kesimpulan**
+
+Sistem rekomendasi berbasis *Content-Based Filtering* berhasil menghasilkan rekomendasi film yang relevan berdasarkan film input. Pendekatan ini efektif untuk memberikan rekomendasi personalisasi berdasarkan preferensi pengguna.
 
 
 ## **Evaluation**

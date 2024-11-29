@@ -341,6 +341,8 @@ plt.show()
 
 """## **Data Preparation**
 
+### **Penggabungan Dataset**
+
 Pada langkah ini, kita melakukan **penggabungan dataset** antara informasi film yang ada pada dataset `data_tmdb_movies` dan data aktor serta kru pada dataset `data_tmdb_credits`. Penggabungan ini dilakukan berdasarkan **ID film**, yang terdapat pada kolom `id` di `data_tmdb_movies` dan kolom `movie_id` di `data_tmdb_credits`.
 
 Metode yang digunakan untuk penggabungan ini adalah fungsi `pd.merge()`. Fungsi ini akan menggabungkan kedua DataFrame berdasarkan kolom yang sesuai, sehingga informasi terkait film (seperti genre, overview, dan lainnya) dan informasi terkait cast serta crew akan digabungkan menjadi satu baris per film.
@@ -544,10 +546,6 @@ filtered_movies_1[filtered_movies_1['title'] == "Seventh Son"]['tagline']
 
 """Ternyata pada **tagline** film Seven Son terdapat informasi **the dark knight**, namun jika kita menerapkan sistem rekomendasi, diharapkan judul film ini tidak tampil.
 
-## **Modeling and Result**
-
-Pada bagian ini, kita menggunakan teknik **Content-Based Filtering** untuk menganalisis teks dan membuat representasi numerik dari data teks, yang akan digunakan dalam model rekomendasi. Salah satu pendekatan yang populer adalah menggunakan **TF-IDF (Term Frequency-Inverse Document Frequency)**, yang membantu kita untuk mengukur seberapa penting suatu kata dalam sebuah dokumen dalam konteks keseluruhan koleksi dokumen.
-
 ### **TF-IDF Vectorizer**
 
 Berikut adalah penjelasan mengenai penggunaan TF-IDF :
@@ -619,6 +617,10 @@ tfidf_matrix_cast.shape
 tfidf_matrix_genres.shape
 
 """Terdapat 22 Genre berbeda untuk mendeskripsikan 4.803 film dalam kumpulan dataset TMDB.
+
+## **Modeling and Result**
+
+Pada bagian ini, kita menggunakan teknik **Content-Based Filtering** untuk menganalisis teks dan membuat representasi numerik dari data teks, yang akan digunakan dalam model rekomendasi.
 
 ### **Cosine Similarity**
 
